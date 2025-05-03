@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>集中サポート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* フォント設定 (Inter) */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* カスタムスタイル */
+        html, body {
+            height: 100%;
+            margin: 0;
+            background-color: #f7fafc; /* Tailwindのgray-100相当 */
+            color: #2d3748; /* Tailwindのgray-800相当 */
+        }
+        /* 全体をFlexコンテナに */
+        body {
+            display: flex;
+            align-items: stretch; /* 高さを揃える */
+            justify-content: center; /* 中央寄せ */
+            padding: 2rem; /* 全体に少しパディング */
+            box-sizing: border-box;
+        }
+        /* 左側エリア: 累積時間 */
+        #left-sidebar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-right: 2rem; /* 右側に余白 */
+            text-align: center;
+            width: 150px; /* 固定幅 */
+            flex-shrink: 0; /* 縮まないように */
+            border-right: 1px solid #e2e8f0; /* 区切り線 (gray-300) */
+            margin-right: 2rem; /* 右側にマージン */
+        }
+        #total-work-time-label, #total-work-time, #last-session-time {
+             font-feature-settings: "tnum"; /* 等幅フォント */
+        }
+        #total-work-time-label {
+            font-size: 0.875rem; /* text-sm */
+            color: #718096; /* gray-600 */
+            margin-bottom: 0.25rem; /* mb-1 */
+        }
+        #total-work-time {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700; /* font-bold */
+            line-height: 1.2;
+        }
+        #last-session-time {
+            font-size: 1rem; /* text-base */
+            color: #4a5568; /* gray-700 */
+            margin-top: 0.5rem; /* mt-2 */
+            min-height: 1.5rem; /* 高さを確保 */
+        }
+
+        /* 中央メインコンテンツエリア */
+        #main-content {
+            flex-grow: 1; /* 残りのスペースを埋める */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 上中下を分散 */
+            align-items: center;
+            text-align: center;
+            min-width: 0; /* Flexアイテムの縮小問題を回避 */
+        }
+
+        /* --- 以前のスタイル (一部調整) --- */
+        .goal-input::placeholder { color: #a0aec0; }
+        .goal-input:focus {
+            outline: none;
+            border-color: #63b3ed;
+            box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.5);
+        }
+        .action-button {
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+            padding: 0.75rem 1.5rem; font-size: 1.125rem; border-radius: 0.5rem;
+            font-weight: 600; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .action-button:hover { filter: brightness(1.1); }
+        .action-button:active { transform: scale(0.98); box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .start-button-color { background-color: #38a169; color: white; }
+        .break-button-color { background-color: #dd6b20; color: white; }
+        .time-display { font-feature-settings: "tnum"; font-weight: 700; }
+        #main-display { font-size: clamp(3rem, 15vw, 6rem); line-height: 1.1; }
+        #current-time-small { font-size: 1.25rem; color: #718096; min-height: 1.75rem; }
+        .content-center {
+            flex-grow: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; width: 100%;
+        }
+        /* ボタンのスタイル微調整 */
+        .set-goal-button {
+             background-color: #4299e1; /* blue-500 */ color: white;
+             transition: background-color 0.2s ease-in-out;
+        }
+        .set-goal-button:hover { background-color: #3182ce; /* blue-600 */ }
+
+        /* レスポンシブ対応: 狭い画面では左サイドバーを非表示 or 上に移動など検討 */
+        @media (max-width: 768px) { /* md breakpoint */
+            body {
+                flex-direction: column; /* 縦並びにする */
+                padding: 1rem;
+                height: auto; /* 高さを自動に */
+            }
+            #left-sidebar {
+                width: 100%; /* 横幅いっぱい */
+                padding-right: 0;
+                margin-right: 0;
+                margin-bottom: 1.5rem; /* 下にマージン */
+                border-right: none; /* 縦の区切り線は不要に */
+                border-bottom: 1px solid #e2e8f0; /* 下に区切り線 */
+                padding-bottom: 1rem; /* 下にパディング */
+            }
+            #main-content {
+                width: 100%; /* 横幅いっぱい */
+            }
+            #goal-display { font-size: 1.5rem; /* text-2xl */ }
+            #main-display { font-size: clamp(3rem, 20vw, 5rem); } /* 少し調整 */
+            .action-button { width: 80%; max-width: 300px; margin-top: 1rem;} /* ボタン幅調整 */
+        }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="left-sidebar">
+        <div id="total-work-time-label">累積作業時間</div>
+        <div id="total-work-time">00:00:00</div>
+        <div id="last-session-time" class="hidden"></div>
+    </div>
+
+    <div id="main-content">
+        <p id="goal-display" class="text-2xl md:text-3xl font-semibold break-words min-h-[3rem] flex items-center justify-center w-full max-w-lg text-center px-4">
+            </p>
+
+        <div class="content-center">
+            <div id="main-display" class="time-display mb-2">
+                00:00:00
+            </div>
+            <div id="current-time-small" class="time-display hidden">
+                </div>
+            <div class="w-full max-w-sm mt-6">
+                <div class="flex items-center space-x-2">
+                    <input
+                        type="text"
+                        id="goal-input"
+                        placeholder="目標や座右の銘を入力..."
+                        class="goal-input text-base md:text-lg p-2 border border-gray-300 rounded-lg w-full text-center bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-150 ease-in-out"
+                    >
+                    <button id="set-goal-button" class="set-goal-button text-white font-semibold py-2 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 text-base">
+                        決定
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <button id="toggle-work-button" class="action-button start-button-color">
+            作業開始！
+        </button>
+    </div>
+
+    <script>
+        // --- 要素取得 ---
+        const goalInputElement = document.getElementById('goal-input');
+        const goalDisplayElement = document.getElementById('goal-display');
+        const setGoalButton = document.getElementById('set-goal-button');
+        const mainDisplayElement = document.getElementById('main-display');
+        const smallTimeElement = document.getElementById('current-time-small');
+        const toggleWorkButton = document.getElementById('toggle-work-button');
+        // 追加: 累積時間表示用
+        const totalWorkTimeElement = document.getElementById('total-work-time');
+        const lastSessionTimeElement = document.getElementById('last-session-time');
+
+        // --- 状態管理変数 ---
+        let isWorking = false;
+        let clockInterval = null;
+        let stopwatchInterval = null;
+        let stopwatchSeconds = 0;
+        let smallTimeInterval = null;
+        let totalWorkSeconds = 0; // 追加: 累積作業秒数
+
+        // --- 時刻フォーマット関数 ---
+        function formatTime(totalSeconds) {
+            const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+            const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+            const seconds = String(totalSeconds % 60).padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+        // --- 表示更新関数 ---
+        function updateMainClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            mainDisplayElement.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        function updateStopwatch() {
+            stopwatchSeconds++;
+            mainDisplayElement.textContent = formatTime(stopwatchSeconds);
+        }
+
+        function updateSmallTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            smallTimeElement.textContent = `現在時刻: ${hours}:${minutes}:${seconds}`;
+        }
+
+        // 追加: 累積時間表示を更新する関数
+        function updateCumulativeDisplay(totalSeconds, lastSessionSeconds = 0) {
+            totalWorkTimeElement.textContent = formatTime(totalSeconds);
+            if (lastSessionSeconds > 0) {
+                lastSessionTimeElement.textContent = `+${formatTime(lastSessionSeconds)}`;
+                lastSessionTimeElement.classList.remove('hidden');
+            } else {
+                lastSessionTimeElement.classList.add('hidden');
+            }
+        }
+
+        // --- 状態切り替え関数 ---
+        function startWork() {
+            isWorking = true;
+            toggleWorkButton.textContent = '休憩する';
+            toggleWorkButton.classList.remove('start-button-color');
+            toggleWorkButton.classList.add('break-button-color');
+
+            clearInterval(clockInterval);
+
+            stopwatchSeconds = 0; // ストップウォッチリセット
+            mainDisplayElement.textContent = formatTime(stopwatchSeconds);
+            stopwatchInterval = setInterval(updateStopwatch, 1000);
+
+            smallTimeElement.classList.remove('hidden');
+            updateSmallTime();
+            smallTimeInterval = setInterval(updateSmallTime, 1000);
+
+            // 作業開始時は「+X:XX」表示を隠す
+            lastSessionTimeElement.classList.add('hidden');
+        }
+
+        function takeBreak() {
+            isWorking = false;
+            toggleWorkButton.textContent = '作業開始！';
+            toggleWorkButton.classList.remove('break-button-color');
+            toggleWorkButton.classList.add('start-button-color');
+
+            // ストップウォッチ停止
+            clearInterval(stopwatchInterval);
+            stopwatchInterval = null;
+
+            // --- 累積時間の計算と保存 ---
+            const sessionSeconds = stopwatchSeconds; // 今回の作業時間
+            if (sessionSeconds > 0) { // 0秒以上作業した場合のみ加算
+                totalWorkSeconds += sessionSeconds;
+                localStorage.setItem('totalWorkSeconds', totalWorkSeconds); // ローカルストレージに保存
+                updateCumulativeDisplay(totalWorkSeconds, sessionSeconds); // 表示更新
+            }
+            // --------------------------
+
+            // 小さい現在時刻表示停止
+            clearInterval(smallTimeInterval);
+            smallTimeInterval = null;
+            smallTimeElement.classList.add('hidden');
+            smallTimeElement.textContent = '';
+
+            // 通常時計再開
+            updateMainClock();
+            clockInterval = setInterval(updateMainClock, 1000);
+        }
+
+        // --- イベントリスナー ---
+        toggleWorkButton.addEventListener('click', () => {
+            if (isWorking) {
+                takeBreak();
+            } else {
+                startWork();
+            }
+        });
+
+        // 目標設定関連 (変更なし)
+        function loadGoal() {
+            const savedGoal = localStorage.getItem('userGoal');
+            goalDisplayElement.textContent = savedGoal || '';
+        }
+        function saveAndDisplayGoal(goalText) {
+            localStorage.setItem('userGoal', goalText);
+            goalDisplayElement.textContent = goalText;
+        }
+        setGoalButton.addEventListener('click', () => {
+            const currentGoal = goalInputElement.value.trim();
+            if (currentGoal) {
+                saveAndDisplayGoal(currentGoal);
+                goalInputElement.value = '';
+            }
+        });
+        goalInputElement.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                setGoalButton.click();
+            }
+        });
+
+        // --- 初期化処理 ---
+        function initializeApp() {
+            // 累積時間を読み込み
+            totalWorkSeconds = parseInt(localStorage.getItem('totalWorkSeconds') || '0', 10);
+            updateCumulativeDisplay(totalWorkSeconds); // 初期表示 (前回セッション時間は表示しない)
+
+            // 目標を読み込み
+            loadGoal();
+
+            // 通常時計を開始
+            updateMainClock();
+            clockInterval = setInterval(updateMainClock, 1000);
+        }
+
+        initializeApp(); // アプリケーション初期化
+
+    </script>
+</body>
+</html>
